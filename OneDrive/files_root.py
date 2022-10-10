@@ -18,6 +18,7 @@ conn.execute_query()
 tab_folders = []
 
 for folder in folders:
+
     # SCHEMA => FOLDER_ID, FOLDER_NAME, FOLDER_URL, FOLDER_TIME_CREATED, FOLDER_LAST_TIME_MODIFIED
     tab_folders.append({
         "FOLDER_ID" : folder.unique_id,
