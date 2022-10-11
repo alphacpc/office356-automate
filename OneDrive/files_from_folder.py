@@ -12,7 +12,7 @@ conn = ClientContext(onedrive_url_valid).with_credentials(user_credentials)
 # GET ALL FOLDERS ON ROOT
 folder_name = "Classeurs"
 list_source = conn.web.get_folder_by_server_relative_url(f"Documents/{folder_name}")
-files = list_source.files
+files = list_source.
 conn.load(files)
 conn.execute_query()
 
