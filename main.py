@@ -1,132 +1,82 @@
-import os
-import pandas as pd
-from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 from config import username_valid, password, onedrive_url_valid
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.user_credential import UserCredential
+from time import sleep
 
 
-class OneDrive:
+conn = ClientContext(onedrive_url_valid).with_credentials(
+    UserCredential(user_name = username_valid, password = password)
+)
 
-    # CONFIG CONNECT USER
-    def auth(self):
 
-        conn = ClientContext(onedrive_url_valid).with_credentials(
-            UserCredential(user_name = username_valid, password = password)
-        )
+browser = webdriver.Chrome("./chromedriver/chromedriver")
 
-        return conn
+endpoint = f"{onedrive_url_valid}/Documents/Users"
 
+browser.get(endpoint)
 
+sleep(10)
 
-    # GET ALL FOLDERS WITH FROM ROOT OR FOLDER_NAME
-    def get_folders_endpoint(self, folder_name : str = ""):
+user = browser.find_element(By.CSS_SELECTOR, value="#i0116")
+user.send_keys(username_valid)
 
-        conn = self.auth()
+sleep(10)
 
-        list_source = conn.web.get_folder_by_server_relative_url(f"Documents/{folder_name}")
-        folders = list_source.folders
-        conn.load(folders)
-        conn.execute_query()
+button = browser.find_element(By.CSS_SELECTOR, value="#idSIButton9")
+button.click()
 
-        return folders
+sleep(10)
 
+button_password = browser.find_element(By.CSS_SELECTOR, value="#passwordInput")
+button_password.send_keys(password)
 
+sleep(4)
 
-    # GET FILES FROM FOLDER
-    def get_files_from_folder(self, folder_name : str = ""):
+button_submit = browser.find_element(By.CSS_SELECTOR, value="#submitButton")
+button_submit.click()
 
-        conn = self.auth()
-        
-        list_source = conn.web.get_folder_by_server_relative_url(f"Documents/{folder_name}")
-        files = list_source.files
-        conn.load(files)
-        conn.execute_query()
+sleep(4)
 
-        return files
+button_stay_connected = browser.find_element(By.CSS_SELECTOR, value="#idSIButton9")
+button_stay_connected.click()
 
 
+# list_source = conn.web.get_folder_by_server_relative_url(f"Documents/Classeurs")
+# files = list_source.files
+# conn.load(files)
+# conn.execute_query()
 
+# file = files[0]
+# print(file.name, file.serverRelativeUrl)
+# print(file.get_property("LinkingUrl"))
 
+# browser.get(file.get_property("LinkingUrl"))
 
-    # DOWNLOAD FILE BY URL
-    def download_file(self, file_url : str):
-        
-        filename = file_url.split("/")[-1]
+# user = browser.find_element(By.CSS_SELECTOR, value="#i0116")
+# user.send_keys(username_valid)
 
-        dir_name =  f"{ datetime.now().strftime('%d-%m-%Y') }-datas"
+# button = browser.find_element(By.CSS_SELECTOR, value="#idSIButton9")
+# button.click()
 
-        try:
-            os.mkdir(dir_name)
+# sleep(4)
 
-        except FileExistsError:
-            # print(f"Le dossier { dir_name } existe déjà !")
-            pass
+# button_password = browser.find_element(By.CSS_SELECTOR, value="#passwordInput")
+# button_password.send_keys(password)
 
-        conn = self.auth()
-        file_path = os.path.abspath( os.path.join(dir_name, filename) )
 
 
-        with open(file_path, "wb") as local_file:
-            file = conn.web.get_file_by_server_relative_url(file_url)
-            file.download(local_file)
-            conn.execute_query()
+# button_submit = browser.find_element(By.CSS_SELECTOR, value="#submitButton")
+# button_submit.click()
 
-        print(f"Fichier { filename } téléchargé avec succès !")
+# sleep(4)
 
+# button_stay_connected = browser.find_element(By.CSS_SELECTOR, value="#idSIButton9")
+# button_stay_connected.click()
 
 
 
-    # DOWNLOAD FILES FROM FOLDER
-    def download_files_from_folder(self, folder_name : str = ""):
+sleep(30)
 
-        files = self.get_files_from_folder(folder_name)
-
-        for file in files :
-
-            self.download_file(file.serverRelativeUrl)
-
-
-
-
-
-
-    # UPLOAD FILE 
-    def upload_file_to_onedrive(self, path_file : str, folder_name : str = ""):
-
-            file_name = path_file.split('/')[-1]
-            conn = self.auth()
-
-            target_folder = conn.web.get_folder_by_server_relative_url(f"Documents/{folder_name}")
-
-            with open(file_name, 'rb') as content_file:
-
-                file_content = content_file.read()
-
-                target_folder.upload_file(file_name, file_content).execute_query()
-
-            print(f"Le fichier {file_name} chargé avec succès !")
-
-
-
-
-
-
-    # UPLOAD FILES ON LOCAL DIRECTORY
-    def upload_files_to_onedrive(self, folder_name_local : str, folder_name_onedrive: str = ""):
-
-        folder_name_local = os.listdir(f"{ folder_name_local }")
-
-        files = [file for file in folder_name_local if os.path.isfile(file)]
-
-        for file in files:
-
-            self.upload_file_to_onedrive( file, folder_name_onedrive)
-
-
-
-
-
-
-
-#/personal/stg_diallo67135_orange-sonatel_com/Documents/<filename> => Pour un fichier
+browser.close()
