@@ -1,4 +1,5 @@
-### Properties Folders
+### **Folder Properties**
+``` json
 {
     'Exists': True,
     'IsWOPIEnabled': False,
@@ -11,8 +12,12 @@
     'UniqueId': '16636378-fd57-4456-9e0f-1331d62f1385',
     'WelcomePage': ''
 }
+```
 
-### Properties Files
+
+
+### **File Properties**
+```
 {
     'CheckInComment': '',
     'CheckOutType': 2,
@@ -36,3 +41,4 @@
     'UIVersionLabel': '1.0',
     'UniqueId': '263e029d-372d-476b-9609-1f84d2c9b578'
 }
+```
