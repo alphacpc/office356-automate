@@ -4,6 +4,6 @@ automate
 chromedriver
 11-10-2022-datas/
 chromedriver/
-data_to_upload
+datas_to_upload
 main.py
 app.py
