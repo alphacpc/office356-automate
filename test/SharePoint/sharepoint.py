@@ -1,68 +1,155 @@
-from office365.sharepoint.files.file import File
+import os
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.user_credential import UserCredential
-
-from config import username, password
-
-
-# User Connect
-def get_sharepoint_context_user_connected():
-
-    sharepoint_url = 'https://sonatelworkplace.sharepoint.com'
-
-    user_credentials = UserCredential(username, password)
-
-    conn = ClientContext(sharepoint_url).with_credentials(user_credentials)
-
-    return conn
+from office365.runtime.client_request_exception import ClientRequestException
 
 
-# List all files
-def formated_date(date):
-    return date.split("T")[0]
+class SharePoint():
+
+    def __init__(self, username, password, sharepoint_website_url):
+        self.username = username
+        self.password = password
+        self.sharepoint_website_url = sharepoint_website_url
 
 
-def formated_time(time):
-    return time.split("T")[1].split("Z")[0]
+    def __auth(self):
+        user_credentials = UserCredential(self.username, self.password)
+        conn = ClientContext(self.sharepoint_website_url).with_credentials(user_credentials)
+        
+        return conn
+
+
+    def create_team_website_sharepoint(self, title : str, is_public : Boolean = False):
+        conn = self.__auth()
+        
+        try:
+            conn.create_team_site(alias = {title}, title = {title}, is_public = is_public)
+            print("Création avec succès !!!")
+            return True
+
+        except:
+            print("Erreur de création !!!")
+            return False
+
+
+    def create_communication_website_sharepoint(self, title : str):
+        conn = self.__auth()
+        
+        try:
+            conn.create_communication_site(alias = {title}, title = {title})
+            print("Création avec succès !!!")
+            return True
+
+        except:
+            print("Erreur de création !!!")
+            return False
 
 
 
-def get_files(conn):
+    def get_folders(self, folder_name : str = ""):
+        conn = self.__auth()
+        list_source = conn.web.get_folder_by_server_relative_url(f"Documents partages/{folder_name}")
+        folders = list_source.folders
+        conn.load(folders)
+        conn.execute_query()
+
+        return folders
+
+
+
+    def get_files(self, folder_name : str = ""):
+        conn = self.__auth()
+        list_source = conn.web.get_folder_by_server_relative_url(f"Documents partages/{folder_name}")
+        files = list_source.files
+        conn.load(files)
+        conn.execute_query()
+
+        return files
+
+
+
+    def create_folder(self, new_folder_name : str, location_folder : str = ""):
+        conn = self.__auth()
+        result = conn.web.folders.add(f'Documents partages/{location_folder}/{new_folder_name}').execute_query()
+
+        if result:
+
+            relative_url = f'Documents partages/{location_folder}/{new_folder_name}'
+            
+            return relative_url
+
+
     
-    list_source = conn.web.get_folder_by_server_relative_url("Documents partages/Data")
-    files = list_source.files
-    conn.load(files)
-    conn.execute_query()
+    def download_file(self, file_url : str):
+        conn = self.__auth()
+        filename = file_url.split("/")[-1]
 
-    print(files)
+        with open(f"{filename}", "wb") as local_file:
 
-    for file in files :
+            file = conn.web.get_file_by_server_relative_url(file_url)
+            file.download(local_file)
+            conn.execute_query()
+        
+        print(f"Fichier { filename } téléchargé avec succès !")
 
-        print(file.unique_id, file.name, file.length, file.serverRelativeUrl, file.time_created, file.time_last_modified)
-
-        break
+        return True
 
 
 
+    def download_files_from_folder(self, folder_name : str = ""):
 
-# Download files from folder
-def download_files(conn, file_name="liste_page_vierge.txt", folder_name="Data"):
+        files = self.get_files(folder_name)
+
+        if len(files) > 0:
+            [self.download_file(file.serverRelativeUrl) for file in files]
+            return True
+
+        else:
+            print("Aucun Fichier téléchargé !!! Vérifiez le nom du dossier.")
+            return False
+
+
+
+    def upload_file_on_sharepoint(self, path_file_abs : str = "", folder_name_sharepoint : str = ""):
+        req = self.check_exist_folder(folder_name_sharepoint)
+
+        if req:
+            file_name = path_file_abs.split('/')[-1]
+            
+            with open(path_file_abs, 'rb') as content_file:
+
+                file_content = content_file.read()
+                req.upload_file(file_name, file_content).execute_query()
+
+            print(f"Le fichier {file_name} chargé avec succès !")
+
+            return True
+
+        return False
+
+
+
+    def upload_files_on_folder_sharepoint(self, folder_name_local : str = "", folder_name_sharepoint : str = ""):
+        req = self.check_exist_folder(folder_name_sharepoint)
+
+        if req:
+            tab_files = os.listdir(f"{ folder_name_local }")
+            [self.upload_file_on_sharepoint(folder_name_local+f, folder_name_sharepoint) for f in tab_files if os.path.isfile(folder_name_local + f)] 
+            return True
+
+        else: 
+            return False
+
+
+
+    def check_exist_folder(self, folder_name_sharepoint):
+        conn = self.__auth()
     
-    file_url = f'/teams/DemoTest/Documents%20partages/Data/liste_page_vierge.txt'
-
-    file = File.open_binary(conn, file_url)
-    
-    return file
-
-
-
-# Basic Query
-def basic_query(conn):
-
-    web = conn.web.get().execute_query()
-
-    print("Web title: {0}".format(web.properties['Title']))
-
-
-
-
+        try:
+            req = conn.web.get_folder_by_server_relative_url(f"Documents partages/{folder_name_sharepoint}")
+            req.get().execute_query()
+            return req
+        
+        except ClientRequestException as e:
+            print(e)
+            return False

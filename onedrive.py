@@ -1,7 +1,10 @@
+from fileinput import filename
 import os
 from datetime import datetime
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.user_credential import UserCredential
+
+from config import username_valid, password, onedrive_url_valid
 
 
 class OneDrive:
@@ -27,21 +30,11 @@ class OneDrive:
 
         conn = self.auth()
 
-        print("hello")
-        
         list_source = conn.web.get_folder_by_server_relative_url(f"Documents/{folder_name}")
-        print('migos')
-
         folders = list_source.folders
-
-        print('migos')
-
         conn.load(folders)
-        print('migos')
-
         conn.execute_query()
 
-        print('migos')
         return folders
 
 
@@ -99,6 +92,25 @@ class OneDrive:
 
 
 
+    # CREATE FOLDER 
+    def create_folder_on_onedrive(self, folder_name : str):
+    
+        if folder_name:
+
+            conn = self.auth()
+
+            result = conn.web.folders.add(f'Documents/{folder_name}').execute_query()
+
+            if result:
+
+                relative_url = f'Documents/{folder_name}'
+
+                return relative_url
+
+        else:
+            print("Saisir le nom du dossier !!!")
+            return False 
+
 
 
 
@@ -110,7 +122,7 @@ class OneDrive:
 
             target_folder = conn.web.get_folder_by_server_relative_url(f"Documents/{folder_name}")
 
-            with open(file_name, 'rb') as content_file:
+            with open(path_file, 'rb') as content_file:
 
                 file_content = content_file.read()
 
@@ -126,11 +138,13 @@ class OneDrive:
     # UPLOAD FILES ON LOCAL DIRECTORY
     def upload_files_to_onedrive(self, folder_name_local : str = "./", folder_name_onedrive: str = ""):
 
-        folder_name_local = os.listdir(f"{ folder_name_local }")
+        # folder_name_local = os.listdir(f"{ folder_name_local }")
+        tab_files = os.listdir(f"{ folder_name_local }")
 
         # files = [file for file in folder_name_local if (not os.path.isdir(file) and not os.path.ismount(file)) ]
 
-        files = [f for f in folder_name_local if os.path.isfile(folder_name_local+'/'+f)] 
+        files = [folder_name_local + f for f in tab_files if os.path.isfile(folder_name_local + f)] 
+
 
         for file in files:
 
@@ -139,3 +153,27 @@ class OneDrive:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+session = OneDrive(username_valid, password, onedrive_url_valid)
+session.create_folder_on_onedrive("ndeye")
+session.upload_files_to_onedrive("./ndeye/", "ndeye")
