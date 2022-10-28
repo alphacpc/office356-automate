@@ -19,7 +19,7 @@ class SharePoint():
         return conn
 
 
-    def create_team_website_sharepoint(self, title : str, is_public : Boolean = False):
+    def create_team_website_sharepoint(self, title : str, is_public = False):
         conn = self.__auth()
         
         try:

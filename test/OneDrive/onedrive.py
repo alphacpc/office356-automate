@@ -1,10 +1,7 @@
-from fileinput import filename
 import os
 from datetime import datetime
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.user_credential import UserCredential
-
-from config import username_valid, password, onedrive_url_valid
 
 
 class OneDrive:
@@ -15,44 +12,40 @@ class OneDrive:
         self.url_user = url_user
 
     # CONNECT USER
-    def auth(self):
+    def __auth(self):
 
         conn = ClientContext(self.url_user).with_credentials(
             UserCredential(user_name = self.username[0], password = self.password[0])
         )
-
         return conn
-
 
 
     # GET ALL FOLDERS WITH FROM ROOT OR FOLDER_NAME
     def get_folders_endpoint(self, folder_name : str = ""):
 
-        conn = self.auth()
-
+        conn = self.__auth()
+        
         list_source = conn.web.get_folder_by_server_relative_url(f"Documents/{folder_name}")
         folders = list_source.folders
+
         conn.load(folders)
         conn.execute_query()
 
         return folders
 
 
-
     # GET FILES FROM FOLDER
-    def get_files_from_folder(self, folder_name = ""):
+    def get_files_from_folder(self, folder_name : str = ""):
 
-        conn = self.auth()
+        conn = self.__auth()
         
         list_source = conn.web.get_folder_by_server_relative_url(f"Documents/{folder_name}")
         files = list_source.files
+        
         conn.load(files)
         conn.execute_query()
 
         return files
-
-
-
 
 
     # DOWNLOAD FILE BY URL
@@ -60,7 +53,7 @@ class OneDrive:
         
         filename = file_url.split("/")[-1]
 
-        dir_name =  f"{ datetime.now().strftime('%d-%m-%Y') }-datas"
+        dir_name =  f"./{ datetime.now().strftime('%d-%m-%Y') }-datas"
 
         try:
             os.mkdir(dir_name)
@@ -69,7 +62,7 @@ class OneDrive:
             pass
 
         file_path = os.path.abspath( os.path.join(dir_name, filename) )
-        conn = self.auth()
+        conn = self.__auth()
 
         with open(file_path, "wb") as local_file:
             file = conn.web.get_file_by_server_relative_url(file_url)
@@ -77,8 +70,6 @@ class OneDrive:
             conn.execute_query()
 
         print(f"Fichier { filename } téléchargé avec succès !")
-
-
 
 
     # DOWNLOAD FILES FROM FOLDER
@@ -91,13 +82,43 @@ class OneDrive:
             self.download_file(file.serverRelativeUrl)
 
 
+    # UPLOAD FILE 
+    def upload_file_to_onedrive(self, path_file : str, folder_name : str = ""):
+
+            file_name = path_file.split('/')[-1]
+            conn = self.__auth()
+
+            target_folder = conn.web.get_folder_by_server_relative_url(f"Documents/{folder_name}")
+
+            with open(path_file, 'rb') as content_file:
+
+                file_content = content_file.read()
+
+                target_folder.upload_file(file_name, file_content).execute_query()
+
+            print(f"Le fichier {file_name} chargé avec succès !")
+
+
+
+    # UPLOAD FILES ON LOCAL DIRECTORY
+    def upload_files_to_onedrive(self, folder_name_local : str = "./", folder_name_onedrive: str = ""):
+
+        tab_files = os.listdir(f"{ folder_name_local }")
+
+        files = [folder_name_local + f for f in tab_files if os.path.isfile(folder_name_local + '/' +f )] 
+
+        for file in files:
+
+            self.upload_file_to_onedrive( file, folder_name_onedrive)
+
+
 
     # CREATE FOLDER 
     def create_folder_on_onedrive(self, folder_name : str):
     
         if folder_name:
 
-            conn = self.auth()
+            conn = self.__auth()
 
             result = conn.web.folders.add(f'Documents/{folder_name}').execute_query()
 
@@ -113,67 +134,11 @@ class OneDrive:
 
 
 
+    # SHARE FOLDER WITH ANONYMOUS
+    def share_folder(self, folder_name : str = "", is_edit = False):
 
-    # UPLOAD FILE 
-    def upload_file_to_onedrive(self, path_file : str, folder_name : str = ""):
+        conn = self.__auth()
 
-            file_name = path_file.split('/')[-1]
-            conn = self.auth()
+        result = conn.web.create_anonymous_link(conn, url=f"Documents/{folder_name}", is_edit_link = is_edit).execute_query()
 
-            target_folder = conn.web.get_folder_by_server_relative_url(f"Documents/{folder_name}")
-
-            with open(path_file, 'rb') as content_file:
-
-                file_content = content_file.read()
-
-                target_folder.upload_file(file_name, file_content).execute_query()
-
-            print(f"Le fichier {file_name} chargé avec succès !")
-
-
-
-
-
-
-    # UPLOAD FILES ON LOCAL DIRECTORY
-    def upload_files_to_onedrive(self, folder_name_local : str = "./", folder_name_onedrive: str = ""):
-
-        # folder_name_local = os.listdir(f"{ folder_name_local }")
-        tab_files = os.listdir(f"{ folder_name_local }")
-
-        # files = [file for file in folder_name_local if (not os.path.isdir(file) and not os.path.ismount(file)) ]
-
-        files = [folder_name_local + f for f in tab_files if os.path.isfile(folder_name_local + f)] 
-
-
-        for file in files:
-
-            self.upload_file_to_onedrive( file, folder_name_onedrive)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-session = OneDrive(username_valid, password, onedrive_url_valid)
-session.create_folder_on_onedrive("ndeye")
-session.upload_files_to_onedrive("./ndeye/", "ndeye")
+        return result.value
