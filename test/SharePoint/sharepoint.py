@@ -48,10 +48,8 @@ class SharePoint():
 
     def get_folders(self, folder_name : str = ""):
         conn = self.__auth()
-        list_source = conn.web.get_folder_by_server_relative_url(f"Documents partages/{folder_name}")
-        folders = list_source.folders
-        conn.load(folders)
-        conn.execute_query()
+        folders = conn.web.get_folder_by_server_relative_url(f"Documents partages/{folder_name}").folders
+        conn.load(folders).execute_query()
 
         return folders
 
@@ -59,10 +57,8 @@ class SharePoint():
 
     def get_files(self, folder_name : str = ""):
         conn = self.__auth()
-        list_source = conn.web.get_folder_by_server_relative_url(f"Documents partages/{folder_name}")
-        files = list_source.files
-        conn.load(files)
-        conn.execute_query()
+        files = conn.web.get_folder_by_server_relative_url(f"Documents partages/{folder_name}").files
+        conn.load(files).execute_query()
 
         return files
 
@@ -73,9 +69,7 @@ class SharePoint():
         result = conn.web.folders.add(f'Documents partages/{location_folder}/{new_folder_name}').execute_query()
 
         if result:
-
             relative_url = f'Documents partages/{location_folder}/{new_folder_name}'
-            
             return relative_url
 
 
@@ -85,7 +79,6 @@ class SharePoint():
         filename = file_url.split("/")[-1]
 
         with open(f"{filename}", "wb") as local_file:
-
             file = conn.web.get_file_by_server_relative_url(file_url)
             file.download(local_file)
             conn.execute_query()
@@ -97,7 +90,6 @@ class SharePoint():
 
 
     def download_files_from_folder(self, folder_name : str = ""):
-
         files = self.get_files(folder_name)
 
         if len(files) > 0:
@@ -117,12 +109,10 @@ class SharePoint():
             file_name = path_file_abs.split('/')[-1]
             
             with open(path_file_abs, 'rb') as content_file:
-
                 file_content = content_file.read()
                 req.upload_file(file_name, file_content).execute_query()
 
             print(f"Le fichier {file_name} chargé avec succès !")
-
             return True
 
         return False
